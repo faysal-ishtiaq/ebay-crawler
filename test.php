@@ -115,31 +115,53 @@ function storeToListing($url)
   return $listingUrls;
 }
 
+
+/*
+ * extract items
+ */
+
+ function extractItems($url)
+ {
+   $ebayProductScrapper = new EbayProductScrapper($url);
+   echo $ebayProductScrapper->getProductTitle()."\n";
+   echo $ebayProductScrapper->getProductPrice()."\n";
+   //echo $ebayProductScrapper->getProductQuantity()."\n";
+   echo $ebayProductScrapper->getSellerName()."\n";
+   echo $ebayProductScrapper->getSellerLink()."\n";
+   print_r($ebayProductScrapper->getProductAttributes())."\n";
+   echo $ebayProductScrapper->getSellerAddress()."\n";
+   print_r($ebayProductScrapper->getSellerContacts())."\n";
+   echo $ebayProductScrapper->getImages()."\n";
+ }
+
 $urlType = getUrlType($url);
 echo $urlType;
 
 if ($urlType == 'user')
 {
   $listings = userToListing($url);
-  print_r($listings);
+  foreach ($listings as $listingChunk)
+  {
+    foreach($listingChunk as $listUrl)
+    {
+      extractItems($listUrl);
+    }
+  }
 }
 else if ($urlType == 'store')
 {
   $listings = userToListing($url);
-  print_r($listings);
+  foreach ($listings as $listingChunk)
+  {
+    foreach($listingChunk as $listUrl)
+    {
+      extractItems($listUrl);
+    }
+  }
 }
 else if ($urlType == 'listing')
 {
-  $ebayProductScrapper = new EbayProductScrapper($url);
-  echo $ebayProductScrapper->getProductTitle()."\n";
-  echo $ebayProductScrapper->getProductPrice()."\n";
-  //echo $ebayProductScrapper->getProductQuantity()."\n";
-  echo $ebayProductScrapper->getSellerName()."\n";
-  echo $ebayProductScrapper->getSellerLink()."\n";
-  print_r($ebayProductScrapper->getProductAttributes())."\n";
-  echo $ebayProductScrapper->getSellerAddress()."\n";
-  print_r($ebayProductScrapper->getSellerContacts())."\n";
-  echo $ebayProductScrapper->getImages()."\n";
+  extractItems($url);
 }
 else
 {
