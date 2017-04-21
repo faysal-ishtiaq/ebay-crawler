@@ -127,8 +127,10 @@ function storeToListing($url)
         $query['_pgn'] = 1;
         $pageUrl = $parts['scheme'].'://'.$parts['host'].$parts['path'].http_build_query($query);
       }
-      else{
+      else
+      {
         $pageUrl = $parts['scheme'].'://'.$parts['host'].substr_replace($pages[1], '1', -1);
+        echo $pageUrl;
       }
 
     }
