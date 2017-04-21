@@ -217,8 +217,7 @@ function startProcessing($url)
   $urlType = getUrlType($url);
   $productData = [];
   echo $urlType;
-  die();
-  
+
   if ($urlType == 'user')
   {
     $listings = userToListing($url);
@@ -238,6 +237,9 @@ function startProcessing($url)
       foreach($listingChunk as $listUrl)
       {
         $productData[] = extractItems($listUrl);
+        echo "<pre>";
+        print_r($productData);
+        die();
       }
     }
   }
