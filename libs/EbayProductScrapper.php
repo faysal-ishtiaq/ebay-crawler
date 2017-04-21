@@ -57,18 +57,19 @@ class EbayProductScrapper
 	public function getProductDescription()
 	{
 		try {
-			$_url = $this->crawler->filter('iframe#desc_ifr')->first()->extract(array('src'));
-			if (count($_url))
-			{
-				$_url = $_url[0];
-			}
-			else return '';
+			$_url = $this->crawler->filter('iframe#desc_ifr')->first()->extract(array('src'))[0];
 		}
 		catch (Exception $e)
 		{
 			return '';
 		}
+		catch (RuntimeException $e)
+		{
+			return '';
+		}
 
+		if (strpos($url, '__00004000__')) return '';
+		
 		$_client = new Client();
 		$_crawler = $_client->request('GET', $_url);
 
@@ -80,7 +81,7 @@ class EbayProductScrapper
 		{
 			try
 			{
-				$description = $_crawler->filter('div#ds_div')->first()->extract(array('_text'));
+				$description = $_crawler->filter('div#ds_div')->first()->extract(array('_text'))[0];
 			}
 			catch (Exception $e)
 			{
@@ -90,8 +91,6 @@ class EbayProductScrapper
 			{
 				$description = '';
 			}
-			if (count($description)) $description = $description[0];
-			else $description = '';
 		}
 		catch (RuntimeException $e)
 		{
