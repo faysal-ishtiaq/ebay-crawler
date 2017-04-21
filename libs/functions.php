@@ -220,6 +220,8 @@ function startProcessing($url)
 
   if ($urlType == 'user')
   {
+    echo "handling user type link";
+    die();
     $listings = userToListing($url);
     foreach ($listings as $listingChunk)
     {
@@ -229,11 +231,13 @@ function startProcessing($url)
       }
     }
   }
+
   if ($urlType == 'store')
   {
-    $listings = storeToListing($url);
-    var_dump($listings);
+    echo "handling store type link";
     die();
+    $listings = storeToListing($url);
+
     foreach ($listings as $listingChunk)
     {
       foreach($listingChunk as $listUrl)
@@ -242,6 +246,7 @@ function startProcessing($url)
       }
     }
   }
+
   if ($urlType == 'listing')
   {
     $productData[] = extractItems($url);
