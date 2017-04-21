@@ -62,10 +62,11 @@ class EbayProductScrapper
 			return '';
 		}
 
-		$_client = new Client();
-		$_crawler = $_client->request('GET', $_url);
-
 		try {
+
+			$_client = new Client();
+			$_crawler = $_client->request('GET', $_url);
+
 			$description = $_crawler->filter('div#ds_div font')->first()->text();
 		} catch (Exception $e) {
 			$description = $_crawler->filter('div#ds_div')->first()->extract(array('_text'))[0];
