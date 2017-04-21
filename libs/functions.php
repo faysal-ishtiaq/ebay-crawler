@@ -118,6 +118,8 @@ function storeToListing($url)
     {
       if($alternative)
       {
+        $parts = parse_url($page);
+        
         if($parts['path'] == "")
         {
           $parts = parse_url($pages[1]);
