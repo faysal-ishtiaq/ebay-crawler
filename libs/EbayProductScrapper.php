@@ -57,7 +57,12 @@ class EbayProductScrapper
 	public function getProductDescription()
 	{
 		try {
-			$_url = $this->crawler->filter('iframe#desc_ifr')->first()->extract(array('src'))[0];
+			$_url = $this->crawler->filter('iframe#desc_ifr')->first()->extract(array('src'));
+			if (count($_url))
+			{
+				$_url = $_url[0];
+			}
+			else return '';
 		} catch (Exception $e) {
 			return '';
 		}
