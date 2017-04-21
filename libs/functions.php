@@ -220,9 +220,9 @@ function startProcessing($url)
 
   if ($urlType == 'user')
   {
-    echo "handling user type link";
-    die();
     $listings = userToListing($url);
+      print_r($listings);
+      die();
     foreach ($listings as $listingChunk)
     {
       foreach($listingChunk as $listUrl)
