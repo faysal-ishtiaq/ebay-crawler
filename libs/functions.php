@@ -232,6 +232,8 @@ function startProcessing($url)
   if ($urlType == 'store')
   {
     $listings = storeToListing($url);
+    var_dump($listings);
+    die();
     foreach ($listings as $listingChunk)
     {
       foreach($listingChunk as $listUrl)
