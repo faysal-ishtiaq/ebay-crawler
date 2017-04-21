@@ -1,5 +1,4 @@
 <?php
-
 require 'vendor/autoload.php';
 require 'EbayProductScrapper.php';
 
@@ -105,22 +104,69 @@ function storeToListing($url)
 }
 
 
+function outputCsv($fileName, $assocDataArray)
+{
+    ob_clean();
+    header('Pragma: public');
+    header('Expires: 0');
+    header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+    header('Cache-Control: private', false);
+    header('Content-Type: text/csv');
+    header('Content-Disposition: attachment;filename=' . $fileName);
+    if(isset($assocDataArray['0'])){
+        $fp = fopen('php://output', 'w');
+        fputcsv($fp, array_keys($assocDataArray['0']));
+        foreach($assocDataArray AS $values){
+            fputcsv($fp, $values);
+        }
+        fclose($fp);
+    }
+    ob_flush();
+}
+
+
 /*
  * extract items
  */
 
  function extractItems($url)
  {
+   $data = [];
    $ebayProductScrapper = new EbayProductScrapper($url);
-   echo $ebayProductScrapper->getProductTitle()."\n";
-   echo $ebayProductScrapper->getProductPrice()."\n";
-   //echo $ebayProductScrapper->getProductQuantity()."\n";
-   echo $ebayProductScrapper->getSellerName()."\n";
-   echo $ebayProductScrapper->getSellerLink()."\n";
-   print_r($ebayProductScrapper->getProductAttributes())."\n";
-   echo $ebayProductScrapper->getSellerAddress()."\n";
-   print_r($ebayProductScrapper->getSellerContacts())."\n";
-   echo $ebayProductScrapper->getImages()."\n";
+
+   $data['item_url'] = $url;
+   $data['product_title'] = $ebayProductScrapper->getProductTitle();
+   $data['product_price'] = $ebayProductScrapper->getProductPrice();
+   $data['product_description'] = $ebayProductScrapper->getProductDescription();
+   $data['seller_name'] = $ebayProductScrapper->getSellerName();
+   $data['seller_link'] = $ebayProductScrapper->getSellerLink();
+
+   $productAttr = $ebayProductScrapper->getProductAttributes();
+   foreach ($productAttr as $attr)
+   {
+   	if (is_array($attr))
+   	{
+   		$data[str_replace(':', '', $attr['key'])] = $attr['value'];
+   	}
+   }
+
+   $data['seller_address'] = $ebayProductScrapper->getSellerAddress();
+
+   $contacts = $ebayProductScrapper->getSellerContacts();
+   foreach ($contacts as $contact)
+   {
+   	if (is_array($contact))
+   	{
+   		$data[$contact['type']] = $contact['value'];
+   	}
+   }
+
+   $images = $ebayProductScrapper->getImages();
+   foreach ($images as $key => $value)
+   {
+   	$data['url'.$key] = $value;
+   }
+   return $data;
  }
 
 /**
@@ -129,6 +175,7 @@ function storeToListing($url)
 function startProcessing($url)
 {
   $urlType = getUrlType($url);
+  $productData = [];
 
   if ($urlType == 'user')
   {
@@ -137,7 +184,7 @@ function startProcessing($url)
     {
       foreach($listingChunk as $listUrl)
       {
-        extractItems($listUrl);
+        $productData[] = extractItems($listUrl);
       }
     }
   }
@@ -148,32 +195,57 @@ function startProcessing($url)
     {
       foreach($listingChunk as $listUrl)
       {
-        extractItems($listUrl);
+        $productData[] = extractItems($listUrl);
       }
     }
   }
   else if ($urlType == 'listing')
   {
-    extractItems($url);
+    $productData[] = extractItems($url);
   }
   else
   {
     //do nothing
   }
+
+  return $productData;
+  // outputCsv('ebay-data.csv', $productData);
 }
 
-$urls = [];
-$urls[] = 'http://www.ebay.co.uk/usr/theoldcountryfarmhouse';
-$urls[] = 'http://stores.ebay.co.uk/retro-fun-stuff';
-// $url = 'http://stores.ebay.com/asc365usa/';
-// $url = 'http://stores.ebay.com/themaytagshed';
-// $url = 'http://stores.ebay.com/theoldcountryfarmhouse';
-// $url = 'http://www.ebay.co.uk/theoldcountryfarmhouse';
-// $url = 'http://www.ebay.co.uk/itm/NEW-Farmhouse-Fruit-Basket-bowl-box-kitchen-storage-old-rustic-style/260943651348';
-// $url = 'http://www.ebay.co.uk/usr/theoldcountryfarmhouse';
-
-
-foreach ($urls as $url)
+function getFormattedData($urls)
 {
-  startProcessing($url);
+  $data = [];
+  $superData = [];
+  $superKeys = [];
+  foreach ($urls as $url)
+  {
+    $data[] = startProcessing($url);
+  }
+
+  foreach ($data as $_data)
+  {
+    foreach($_data as $d_)
+      {
+        $superKeys = array_unique(array_merge($superKeys, array_keys($d_)));
+      }
+  }
+
+  foreach($data as $_data)
+  {
+    foreach ($_data as $_d)
+    {
+      $d = [];
+      foreach($superKeys as $key)
+      {
+        if (array_key_exists($key, $_d))
+        {
+          $d[$key] = $_d[$key];
+        }
+        else $d[$key] = '';
+      }
+    }
+
+    $superData[] = $d;
+  }
+  return $superData;
 }
