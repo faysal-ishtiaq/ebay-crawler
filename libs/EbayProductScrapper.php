@@ -63,21 +63,33 @@ class EbayProductScrapper
 				$_url = $_url[0];
 			}
 			else return '';
-		} catch (Exception $e) {
+		}
+		catch (Exception $e)
+		{
 			return '';
 		}
 
+		$_client = new Client();
+		$_crawler = $_client->request('GET', $_url);
+
 		try
 		{
-			$_client = new Client();
-			$_crawler = $_client->request('GET', $_url);
 			$description = $_crawler->filter('div#ds_div font')->first()->text();
 		}
 		catch (Exception $e)
 		{
-			$_client = new Client();
-			$_crawler = $_client->request('GET', $_url);
-			$description = $_crawler->filter('div#ds_div')->first()->extract(array('_text'));
+			try
+			{
+				$description = $_crawler->filter('div#ds_div')->first()->extract(array('_text'));
+			}
+			catch (Exception $e)
+			{
+				$description = '';
+			}
+			catch (RuntimeException $e)
+			{
+				$description = '';
+			}
 			if (count($description)) $description = $description[0];
 			else $description = '';
 		}
