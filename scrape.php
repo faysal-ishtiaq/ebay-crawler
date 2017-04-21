@@ -162,9 +162,15 @@ function startProcessing($url)
   }
 }
 
-$urls = [];
-$urls[] = 'http://www.ebay.co.uk/usr/theoldcountryfarmhouse';
-$urls[] = 'http://stores.ebay.co.uk/retro-fun-stuff';
+if (isset($_POST['scrapper'])) {
+  $urls = explode(',', $_POST['inputLinks']);
+}
+
+print_r($urls);
+die();
+// $urls = [];
+// $urls[] = 'http://www.ebay.co.uk/usr/theoldcountryfarmhouse';
+// $urls[] = 'http://stores.ebay.co.uk/retro-fun-stuff';
 // $url = 'http://stores.ebay.com/asc365usa/';
 // $url = 'http://stores.ebay.com/themaytagshed';
 // $url = 'http://stores.ebay.com/theoldcountryfarmhouse';
