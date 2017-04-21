@@ -112,7 +112,7 @@ function storeToListing($url)
   foreach ($pages as $page)
   {
 
-    $parts = parse_url($page);
+    $parts = parse_url($url);
 
     if($page == '')
     {
@@ -130,7 +130,7 @@ function storeToListing($url)
       else
       {
         $pageUrl = $parts['scheme'].'://'.$parts['host'].substr_replace($pages[1], '1', -1);
-        echo $pageUrl;
+        //echo $pageUrl;
       }
 
     }
