@@ -77,7 +77,9 @@ class EbayProductScrapper
 		{
 			$_client = new Client();
 			$_crawler = $_client->request('GET', $_url);
-			$description = $_crawler->filter('div#ds_div')->first()->extract(array('_text'))[0];
+			$description = $_crawler->filter('div#ds_div')->first()->extract(array('_text'));
+			if (count($description)) $description = $description[0];
+			else $description = '';
 		}
 		catch (RuntimeException $e)
 		{
