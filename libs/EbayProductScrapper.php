@@ -17,59 +17,110 @@ class EbayProductScrapper
 
 	public function getProductTitle()
 	{
-		$title = $this->crawler->filter('#itemTitle')->first()->text();
-		return trim(str_replace('Details about','', $title));
+		try {
+			$title = $this->crawler->filter('#itemTitle')->first()->text();
+		} catch (Exception $e) {
+			$title = '';
+		}
+
+		try {
+			$title = trim(str_replace('Details about','', $title));
+		} catch (Exception $e) {
+			$title = $title;
+		}
+
+		return $title;
 	}
 
 	public function getProductPrice()
 	{
-		return $this->crawler->filter('#prcIsum')->first()->text();
+		try {
+			$price = $this->crawler->filter('#prcIsum')->first()->text();
+		} catch (Exception $e) {
+			$price = '';
+		}
+
+		return $price;
 	}
 
 	public function getProductQuantity()
 	{
-		return $this->crawler->filter('#qtyTextBox')->first()->text();
+		try {
+			$quantity = $this->crawler->filter('#qtyTextBox')->first()->text();
+		} catch (Exception $e) {
+			$quantity = '';
+		}
+
+		return $quantity;
 	}
 
 	public function getProductDescription()
 	{
-		$_url = $this->crawler->filter('iframe#desc_ifr')->first()->extract(array('src'))[0];
+		try {
+			$_url = $this->crawler->filter('iframe#desc_ifr')->first()->extract(array('src'))[0];
+		} catch (Exception $e) {
+			return '';
+		}
 
 		$_client = new Client();
 		$_crawler = $_client->request('GET', $_url);
 
-		return $_crawler->filter('div#ds_div font')->first()->text();
+		try {
+			$description = $_crawler->filter('div#ds_div font')->first()->text();
+		} catch (Exception $e) {
+			$description = $_crawler->filter('div#ds_div')->first()->extract(array('_text'))[0];
+		}
+
+		return $description;
 	}
 
 
 
 	public function getSellerName()
 	{
-		return $this->crawler->filter('#mbgLink')->first()->text();
+		try {
+			$sellerName = $this->crawler->filter('#mbgLink')->first()->text();
+		} catch (Exception $e) {
+			$sellerName = '';
+		}
+
 	}
 
 	public function getSellerLink()
 	{
-		return $this->crawler->filter('#mbgLink')->first()->extract(array('href'))[0];
+		try {
+			$sellerLink = $this->crawler->filter('#mbgLink')->first()->extract(array('href'))[0];
+		} catch (Exception $e) {
+			$sellerLink = '';
+		}
+
+		return $sellerLink;
 	}
 
 	public function getProductAttributes()
 	{
 		$attrs = [];
-		$attrContainer = $this->crawler->filter('.itemAttr')->first();
-		$attrTable = $attrContainer->filter('div.section > table');
-		$labels = $attrTable->filter('td.attrLabels');
-		$labels->each(function($node) use(&$attrs)
-		{
-			$valueNode = $node->nextAll()->first();
-			$key = trim($node->text());
-			$value = trim($valueNode->text());
-			$attr = [
-					'key' => $key,
-					'value' => $value
-			];
-			$attrs[] = $attr;
-		});
+
+		try {
+
+			$attrContainer = $this->crawler->filter('.itemAttr')->first();
+			$attrTable = $attrContainer->filter('div.section > table');
+			$labels = $attrTable->filter('td.attrLabels');
+			$labels->each(function($node) use(&$attrs)
+			{
+				$valueNode = $node->nextAll()->first();
+				$key = trim($node->text());
+				$value = trim($valueNode->text());
+				$attr = [
+						'key' => $key,
+						'value' => $value
+				];
+				$attrs[] = $attr;
+			});
+		} catch (Exception $e) {
+
+		}
+
 		return $attrs;
 	}
 
@@ -77,11 +128,16 @@ class EbayProductScrapper
 	{
 		$text = '';
 
-		$addressContainer = $this->crawler->filter('.bsi-cic')->first();
-		$addressContainer->filter('.bsi-c1 div')->each(function ($node) use(&$text)
-		{
-			$text = $text."\n".trim($node->text());
-		});
+		try {
+			$addressContainer = $this->crawler->filter('.bsi-cic')->first();
+			$addressContainer->filter('.bsi-c1 div')->each(function ($node) use(&$text)
+			{
+				$text = $text."\n".trim($node->text());
+			});
+		} catch (Exception $e) {
+
+		}
+
 
 		return $text;
 	}
@@ -89,40 +145,48 @@ class EbayProductScrapper
 	public function getSellerContacts()
 	{
 		$contacts = [];
-		$addressContainer = $this->crawler->filter('.bsi-cic')->first();
-		$numberContainer = $addressContainer->filter('.bsi-c2')->first();
-		$count = 0;
-		$numberContainer->filter('div')->each(function($div) use(&$count, &$contacts)
-		{
-			$span = $div->filter('span:not(.bsi-lbl)')->first();
-			if($count == 0)
+		try {
+			$addressContainer = $this->crawler->filter('.bsi-cic')->first();
+			$numberContainer = $addressContainer->filter('.bsi-c2')->first();
+			$count = 0;
+			$numberContainer->filter('div')->each(function($div) use(&$count, &$contacts)
 			{
-				$contacts[] = [
-					'type' => 'phone',
-					'value' => $span->text()
-				];
-			}
-			elseif($count == 1)
-			{
-				$contacts[] = [
-					'type' => 'email',
-					'value' => $span->text()
-				];
-			}
-			$count++;
-		});
+				$span = $div->filter('span:not(.bsi-lbl)')->first();
+				if($count == 0)
+				{
+					$contacts[] = [
+						'type' => 'phone',
+						'value' => $span->text()
+					];
+				}
+				elseif($count == 1)
+				{
+					$contacts[] = [
+						'type' => 'email',
+						'value' => $span->text()
+					];
+				}
+				$count++;
+			});
+		} catch (Exception $e) {
+
+		}
 		return $contacts;
 	}
 
 	public function getImages()
 	{
 		$images = [];
-		$unorderList = $this->crawler->filter('table.img td.tdThumb img')->each(function($img) use(&$images)
-		{
-			$src = $img->extract(array('src'))[0];
-			$images[] = $src;
-		});
+		try {
 
+			$unorderList = $this->crawler->filter('table.img td.tdThumb img')->each(function($img) use(&$images)
+			{
+				$src = $img->extract(array('src'))[0];
+				$images[] = $src;
+			});
+		} catch (Exception $e) {
+
+		}
 		return $images;
 	}
 }

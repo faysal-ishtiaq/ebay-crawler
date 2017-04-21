@@ -19,6 +19,13 @@ function getItemUrl($url)
     $links[] = $node->extract(array('href'))[0];
   });
 
+  if (!count($links))
+  {
+    $crawler->filter('a.vi-url')->each(function ($node) use(&$links)
+    {
+      $links[] = $node->extract(array('href'))[0];
+    });
+  }
   return $links;
 }
 
@@ -31,22 +38,22 @@ function getUrlType($url)
   $parts = parse_url($url);
   $hostAttr = explode('.', $parts['host']);
   $pathAttr = explode('/', $parts['path']);
-
+  $urlType = 'unknown';
   if (count($pathAttr) == 3 && $hostAttr[0] != 'stores' && $pathAttr[1] == 'usr')
   {
       $urlType = 'user';
   }
-  else if (count($pathAttr) == 4 && $hostAttr[0] != 'stores' && $pathAttr[1] != 'usr')
+  // if (count($pathAttr) == 4 && $hostAttr[0] != 'stores' && $pathAttr[1] != 'usr')
+  // {
+  //     $urlType = 'listing';
+  // }
+  if (count($pathAttr) >= 4 && $hostAttr[0] != 'stores' && $pathAttr[1] != 'usr')
   {
       $urlType = 'listing';
   }
-  else if (count($pathAttr) == 2 && $hostAttr[0] == 'stores' && $pathAttr[1] != 'usr')
+  if (count($pathAttr) == 2 && $hostAttr[0] == 'stores' && $pathAttr[1] != 'usr')
   {
       $urlType = 'store';
-  }
-  else
-  {
-    $urlType = 'unknown';
   }
 
   return $urlType;
@@ -67,6 +74,11 @@ function userToListing($url)
 
   $storeUrl = $parts['scheme'].'://'.$parts['host'].'/'.$pathAttr[2];
 
+  $client = new Client();
+  $crawler = $client->request('GET', $url);
+
+  $storeUrl = $crawler->filter('span.store_lk a')->first()->extract(array('href'))[0];
+
   return storeToListing($storeUrl);
 }
 
@@ -76,6 +88,7 @@ function userToListing($url)
  */
 function storeToListing($url)
 {
+  $alternative = false;
   $pages = [];
   $listingUrls = [];
   $client = new Client();
@@ -86,16 +99,43 @@ function storeToListing($url)
     $pages[] = $node->extract(array('href'))[0];
   });
 
+  if (!count($pages))
+  {
+    $crawler->filter('.pgn a.no')->each(function ($node) use(&$pages)
+    {
+      $pages[] = $node->extract(array('href'))[0];
+    });
+
+    $alternative = true;
+  }
+
   foreach ($pages as $page)
   {
-    $parts = parse_url($url);
+
+    $parts = parse_url($page);
+
     if($page == '')
     {
-      $pageUrl = $parts['scheme'].'://'.$parts['host'].substr_replace($pages[1], '1', -1);
+      if($alternative)
+      {
+        if($parts['path'] == "")
+        {
+          $parts = parse_url($pages[1]);
+        }
+
+        parse_str($parts['query'], $query);
+        $query['_pgn'] = 1;
+        $pageUrl = $parts['scheme'].'://'.$parts['host'].$parts['path'].http_build_query($query);
+      }
+      else{
+        $pageUrl = $parts['scheme'].'://'.$parts['host'].substr_replace($pages[1], '1', -1);
+      }
+
     }
     else
     {
-      $pageUrl = $parts['scheme'].'://'.$parts['host'].$page;
+      if($alternative) $pageUrl = $page;
+      else $pageUrl = $parts['scheme'].'://'.$parts['host'].$page;
     }
 
     $listingUrls[] = getItemUrl($pageUrl);
@@ -133,7 +173,6 @@ function outputCsv($fileName, $assocDataArray)
  {
    $data = [];
    $ebayProductScrapper = new EbayProductScrapper($url);
-
    $data['item_url'] = $url;
    $data['product_title'] = $ebayProductScrapper->getProductTitle();
    $data['product_price'] = $ebayProductScrapper->getProductPrice();
@@ -166,6 +205,7 @@ function outputCsv($fileName, $assocDataArray)
    {
    	$data['url'.$key] = $value;
    }
+
    return $data;
  }
 
@@ -188,7 +228,7 @@ function startProcessing($url)
       }
     }
   }
-  else if ($urlType == 'store')
+  if ($urlType == 'store')
   {
     $listings = userToListing($url);
     foreach ($listings as $listingChunk)
@@ -199,13 +239,9 @@ function startProcessing($url)
       }
     }
   }
-  else if ($urlType == 'listing')
+  if ($urlType == 'listing')
   {
     $productData[] = extractItems($url);
-  }
-  else
-  {
-    //do nothing
   }
 
   return $productData;
@@ -217,9 +253,9 @@ function getFormattedData($urls)
   $data = [];
   $superData = [];
   $superKeys = [];
-  foreach ($urls as $url)
+  foreach ($urls as $_url)
   {
-    $data[] = startProcessing($url);
+    $data[] = startProcessing(trim($_url));
   }
 
   foreach ($data as $_data)
@@ -243,9 +279,8 @@ function getFormattedData($urls)
         }
         else $d[$key] = '';
       }
+      $superData[] = $d;
     }
-
-    $superData[] = $d;
   }
   return $superData;
 }
