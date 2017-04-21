@@ -68,10 +68,23 @@ class EbayProductScrapper
 			return '';
 		}
 
-		if (strpos($url, '__00004000__')) return '';
-		
+		if (strpos($_url, '__00004000__')) return '';
+		if (strpos(strtolower($_url), 'error')) return '';
+
 		$_client = new Client();
-		$_crawler = $_client->request('GET', $_url);
+
+		try
+		{
+			$_crawler = $_client->request('GET', $_url);
+		}
+		catch (Exception $e)
+		{
+			return '';
+		}
+		catch (RuntimeException $e)
+		{
+			return '';
+		}
 
 		try
 		{
