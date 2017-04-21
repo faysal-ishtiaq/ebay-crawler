@@ -75,7 +75,7 @@ class EbayProductScrapper
 		}
 		catch (RuntimeException $e)
 		{
-
+			$description = '';
 		}
 
 		return $description;
