@@ -221,10 +221,10 @@ function startProcessing($url)
   if ($urlType == 'user')
   {
     $listings = userToListing($url);
-      print_r($listings);
-      die();
     foreach ($listings as $listingChunk)
     {
+      print_r($listingChunk);
+      die();
       foreach($listingChunk as $listUrl)
       {
         $productData[] = extractItems($listUrl);
