@@ -216,7 +216,9 @@ function startProcessing($url)
 {
   $urlType = getUrlType($url);
   $productData = [];
-
+  echo $urlType;
+  die();
+  
   if ($urlType == 'user')
   {
     $listings = userToListing($url);
