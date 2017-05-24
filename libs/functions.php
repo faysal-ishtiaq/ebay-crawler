@@ -39,22 +39,27 @@ function getUrlType($url)
   $hostAttr = explode('.', $parts['host']);
   $pathAttr = explode('/', $parts['path']);
   $urlType = 'unknown';
-  if (count($pathAttr) == 3 && $hostAttr[0] != 'stores' && $pathAttr[1] == 'usr')
+
+  if ($pathAttr[1] == 'usr')
   {
       $urlType = 'user';
   }
-  // if (count($pathAttr) == 4 && $hostAttr[0] != 'stores' && $pathAttr[1] != 'usr')
-  // {
-  //     $urlType = 'listing';
-  // }
-  if (count($pathAttr) >= 4 && $hostAttr[0] != 'stores' && $pathAttr[1] != 'usr')
+
+  if ($pathAttr[1] == 'itm')
   {
       $urlType = 'listing';
   }
-  if (count($pathAttr) == 2 && $hostAttr[0] == 'stores' && $pathAttr[1] != 'usr')
+
+  if ($hostAttr[0] == 'stores')
   {
       $urlType = 'store';
   }
+
+  if ($hostAttr[0] == 'sch')
+  {
+      $urlType = 'itemsForSale';
+  }
+
 
   return $urlType;
 }
@@ -65,19 +70,10 @@ function getUrlType($url)
  */
 function userToListing($url)
 {
-  $parts = parse_url($url);
-  $hostAttr = explode('.', $parts['host']);
-  $pathAttr = explode('/', $parts['path']);
-
-  $hostAttr[0] = 'stores';
-  $parts['host'] = join('.', $hostAttr);
-
-  $storeUrl = $parts['scheme'].'://'.$parts['host'].'/'.$pathAttr[2];
-
   $client = new Client();
   $crawler = $client->request('GET', $url);
 
-  $storeUrl = $crawler->filter('span.store_lk a')->first()->extract(array('href'))[0];
+  $storeUrl = $crawler->filter('#shortcuts span.store a')->first()->extract(array('href'))[0];
 
   return storeToListing($storeUrl);
 }
@@ -109,63 +105,75 @@ function storeToListing($url)
     $alternative = true;
   }
 
-  foreach ($pages as $page)
+  if(count($pages))
   {
-
-    $parts = parse_url($url);
-
-    if($page == '')
+    foreach ($pages as $page)
     {
-      if($alternative)
-      {
-        $parts = parse_url($page);
-        
-        if($parts['path'] == "")
-        {
-          $parts = parse_url($pages[1]);
-        }
 
-        parse_str($parts['query'], $query);
-        $query['_pgn'] = 1;
-        $pageUrl = $parts['scheme'].'://'.$parts['host'].$parts['path'].http_build_query($query);
+      $parts = parse_url($url);
+
+      if($page == '')
+      {
+        if($alternative)
+        {
+          $parts = parse_url($page);
+
+          if($parts['path'] == "")
+          {
+            $parts = parse_url($pages[1]);
+          }
+
+          parse_str($parts['query'], $query);
+          $query['_pgn'] = 1;
+          $pageUrl = $parts['scheme'].'://'.$parts['host'].$parts['path'].http_build_query($query);
+        }
+        else
+        {
+          $pageUrl = $parts['scheme'].'://'.$parts['host'].substr_replace($pages[1], '1', -1);
+        }
       }
       else
       {
-        $pageUrl = $parts['scheme'].'://'.$parts['host'].substr_replace($pages[1], '1', -1);
-        //echo $pageUrl;
+        if($alternative) $pageUrl = $page;
+        else $pageUrl = $parts['scheme'].'://'.$parts['host'].$page;
       }
 
+      $listingUrls[] = getItemUrl($pageUrl);
     }
-    else
-    {
-      if($alternative) $pageUrl = $page;
-      else $pageUrl = $parts['scheme'].'://'.$parts['host'].$page;
-    }
-
-    $listingUrls[] = getItemUrl($pageUrl);
   }
+  else
+  {
+    $crawler->filter('a.vip')->each(function ($node) use(&$pages)
+    {
+      $listingUrls[] = $node->extract(array('href'))[0];
+    });
+  }
+
   return $listingUrls;
 }
 
 
 function outputCsv($fileName, $assocDataArray)
 {
-    ob_clean();
-    header('Pragma: public');
-    header('Expires: 0');
-    header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
-    header('Cache-Control: private', false);
-    header('Content-Type: text/csv');
-    header('Content-Disposition: attachment;filename=' . $fileName);
-    if(isset($assocDataArray['0'])){
-        $fp = fopen('php://output', 'w');
-        fputcsv($fp, array_keys($assocDataArray['0']));
-        foreach($assocDataArray AS $values){
-            fputcsv($fp, $values);
-        }
-        fclose($fp);
+  ob_clean();
+  header('Pragma: public');
+  header('Expires: 0');
+  header('Cache-Control: must-revalidate, post-check=0, pre-check=0');
+  header('Cache-Control: private', false);
+  header('Content-Type: text/csv');
+  header('Content-Disposition: attachment;filename=' . $fileName);
+  if(isset($assocDataArray['0']))
+  {
+    $fp = fopen('php://output', 'w');
+    fputcsv($fp, array_keys($assocDataArray['0']));
+    foreach($assocDataArray AS $values)
+    {
+        fputcsv($fp, $values);
     }
-    ob_flush();
+    fclose($fp);
+  }
+
+  ob_flush();
 }
 
 
@@ -227,8 +235,6 @@ function startProcessing($url)
     $listings = userToListing($url);
     foreach ($listings as $listingChunk)
     {
-      // print_r($listingChunk);
-      // die();
       foreach($listingChunk as $listUrl)
       {
         $productData[] = extractItems($listUrl);
@@ -238,8 +244,6 @@ function startProcessing($url)
 
   if ($urlType == 'store')
   {
-    // echo "handling store type link";
-    // die();
     $listings = storeToListing($url);
 
     foreach ($listings as $listingChunk)
@@ -257,7 +261,6 @@ function startProcessing($url)
   }
 
   return $productData;
-  // outputCsv('ebay-data.csv', $productData);
 }
 
 function getFormattedData($urls)

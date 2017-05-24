@@ -56,6 +56,8 @@ class EbayProductScrapper
 
 	public function getProductDescription()
 	{
+		$description = '';
+
 		try {
 			$_url = $this->crawler->filter('iframe#desc_ifr')->first()->extract(array('src'))[0];
 		}
@@ -88,17 +90,88 @@ class EbayProductScrapper
 
 		try
 		{
-			$description = $_crawler->filter('div#ds_div font')->first()->text();
+			$description = $_crawler->filter('div#ds_div font')->each(function($node) use($description){
+				$description .= '\n'.$node->text();
+			});
 		}
 		catch (Exception $e)
 		{
 			try
 			{
-				$description = $_crawler->filter('div#ds_div')->first()->extract(array('_text'))[0];
+				$description = $_crawler->filter('div#ds_div')->each(function($node) use($description){
+					$description .= '\n'.$node->extract(array('_text'))[0];
+				});
 			}
 			catch (Exception $e)
 			{
-				$description = '';
+				try
+				{
+					$description = $_crawler->filter('div#ds_div font p')->each(function($node) use($description){
+						$description .= '\n'.$node->extract(array('_text'))[0];
+					});
+				}
+				catch (Exception $e)
+				{
+					try
+					{
+						$description = $_crawler->filter('div#description-area')->each(function($node) use($description){
+							$description .= '\n'.$node->extract(array('_text'))[0];
+						});
+					}
+					catch (Exception $e)
+					{
+						try
+						{
+							$description = $_crawler->filter('div#ds_div font')->each(function($node) use($description){
+								$description .= '\n'.$node->extract(array('_text'))[0];
+							});
+						}
+						catch (Exception $e)
+						{
+							try
+							{
+								$description = $_crawler->filter('div#ds_div font li')->each(function ($node) use($description){
+									$description .= $node->extract(array('_text'))[0];
+								});
+							}
+							catch (Exception $e)
+							{
+								try
+								{
+									// $description = $_crawler->filter('div#ds_div font li')->each(function ($node) use($description){
+									// 	$description .= $node->extract(array('_text'))[0];
+									// });
+									$description = $_crawler->filter('div#ds_div .x-main-desc .x-tins')->first()->extract(array('_text'))[0];
+									});
+								}
+								catch (Exception $e)
+								{
+									$description = '';
+								}
+								catch (RuntimeException $e)
+								{
+									$description = '';
+								}
+							}
+							catch (RuntimeException $e)
+							{
+								$description = '';
+							}
+						}
+						catch (RuntimeException $e)
+						{
+							$description = '';
+						}
+					}
+					catch (RuntimeException $e)
+					{
+						$description = '';
+					}
+				}
+				catch (RuntimeException $e)
+				{
+					$description = '';
+				}
 			}
 			catch (RuntimeException $e)
 			{
@@ -177,7 +250,6 @@ class EbayProductScrapper
 
 		}
 
-
 		return $text;
 	}
 
@@ -207,9 +279,7 @@ class EbayProductScrapper
 				}
 				$count++;
 			});
-		} catch (Exception $e) {
-
-		}
+		} catch (Exception $e) {}
 		return $contacts;
 	}
 
@@ -217,15 +287,17 @@ class EbayProductScrapper
 	{
 		$images = [];
 		try {
-
-			$unorderList = $this->crawler->filter('table.img td.tdThumb img')->each(function($img) use(&$images)
+			if (count($this->crawler->filter('.img.img500.vi-hide-mImgThr')))
 			{
-				$src = $img->extract(array('src'))[0];
-				$images[] = $src;
-			});
-		} catch (Exception $e) {
+				$unorderList = $this->crawler->filter('.img.img500.vi-hide-mImgThr')->each(function($img) use(&$images)
+				{
+					$src = $img->extract(array('src'))[0];
+					$images[] = $src;
+				});
+			}
 
-		}
+		} catch (Exception $e) {}
+
 		return $images;
 	}
 }
