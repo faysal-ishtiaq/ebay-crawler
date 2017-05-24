@@ -73,9 +73,36 @@ function userToListing($url)
   $client = new Client();
   $crawler = $client->request('GET', $url);
 
-  $storeUrl = $crawler->filter('#shortcuts span.store a')->first()->extract(array('href'))[0];
+  $storeUrl = '';
+  $itemsForSaleUrl = '';
 
-  return storeToListing($storeUrl);
+  if($crawler->filter('#shortcuts span.store soi_lk a')->first())
+  {
+    $itemsForSaleUrl = $crawler->filter('#shortcuts span.store soi_lk a')->first()->extract(array('href'))[0];
+  }
+  else if($crawler->filter('#shortcuts span.store store_lk a')->first())
+  {
+    $storeUrl = $crawler->filter('#shortcuts span.store store_lk a')->first()->extract(array('href'))[0];
+  }
+
+  if($storeUrl) return storeToListing($storeUrl);
+  else if($itemsForSaleUrl) return itemsForSaleToListing($itemsForSaleUrl);
+  else return [];
+}
+
+function itemsForSaleToListing($url)
+{
+  $listingUrls = [];
+
+  $client = new Client();
+  $crawler = $client->request('GET', $url);
+
+  $crawler->filter('.pa a')->each(function ($node) use(&$listingUrls)
+  {
+    $listingUrls[] = $node->extract(array('href'))[0];
+  });
+
+  return $listingUrls;
 }
 
 /*
@@ -109,7 +136,6 @@ function storeToListing($url)
   {
     foreach ($pages as $page)
     {
-
       $parts = parse_url($url);
 
       if($page == '')

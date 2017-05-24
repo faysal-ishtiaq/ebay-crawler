@@ -90,6 +90,22 @@ class EbayProductScrapper
 
 		try
 		{
+			$description = $_crawler->filter('div#ds_div')->first()->extract(array('_text'))[0];
+			});
+		}
+		catch (Exception $e)
+		{
+			$description = '';
+		}
+		catch (RuntimeException $e)
+		{
+			$description = '';
+		}
+
+		if($description) return $description;
+
+		try
+		{
 			$description = $_crawler->filter('div#ds_div font')->each(function($node) use($description){
 				$description .= '\n'.$node->text();
 			});
